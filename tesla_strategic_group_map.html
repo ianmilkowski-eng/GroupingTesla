@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tesla Strategic Group Map — Rothaermel 2020</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #090d14; color: #ddd; font-family: 'Segoe UI', system-ui, sans-serif; }
+  .pb { padding: 5px 10px; border: 1px solid #222; border-radius: 5px; background: #111; color: #777; font-size: 10px; cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all .15s; }
+  .pb:hover { color: #bbb; border-color: #444; }
+  .pb.on { color: #e74c3c; border-color: #e74c3c; background: rgba(231,76,60,0.07); }
+  .sel { padding: 7px 10px; background: #111; border: 1px solid #222; border-radius: 6px; color: #aaa; font-size: 11px; font-family: 'JetBrains Mono', monospace; outline: none; }
+  .sel:focus { border-color: #e74c3c; }
+  .rb { padding: 4px 12px; border: 1px solid #222; border-radius: 16px; background: transparent; color: #555; font-size: 10px; cursor: pointer; transition: all .15s; }
+  .rb:hover { color: #aaa; }
+  .rb.on { color: #e74c3c; border-color: rgba(231,76,60,0.33); background: rgba(231,76,60,0.07); }
+  .dot:hover circle:first-child { filter: brightness(1.4); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 5px 6px; text-align: left; }
+  tr { cursor: pointer; }
+  tr:hover { background: rgba(255,255,255,0.02); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const companies = [
+  { name:"Tesla", region:"US", evCommitment:100, productionScale:367500, marketCap:150, revenue:24.5, evInvestment:5, globalReach:3, pricePosition:85, autonomyLevel:90, netIncome:-0.862, usMarketShare:2, evMarketShare:18, employees:50000, vehicles2019:367500, color:"#e74c3c", icon:"\u26A1", notes:"18B miles autonomous data, vertical integration, Gigafactory model, only automaker with OTA updates" },
+  { name:"GM", region:"US", evCommitment:35, productionScale:7700000, marketCap:50, revenue:138, evInvestment:20, globalReach:4, pricePosition:50, autonomyLevel:55, netIncome:6.7, usMarketShare:17, evMarketShare:3, employees:164000, vehicles2019:7700000, color:"#3498db", icon:"\uD83D\uDD35", notes:"$20B committed to EVs, Cruise acquisition ($1B), Chevy Bolt selling poorly (16.5K units), 14% China market share via SAIC JV" },
+  { name:"Ford", region:"US", evCommitment:30, productionScale:5000000, marketCap:30, revenue:155, evInvestment:12, globalReach:3, pricePosition:45, autonomyLevel:40, netIncome:0.047, usMarketShare:14, evMarketShare:1, employees:190000, vehicles2019:5000000, color:"#2ecc71", icon:"\uD83D\uDFE2", notes:"Mustang Mach-E launching 2020, $1B into Argo AI, $500M into Rivian, exiting sedan market for trucks/SUVs" },
+  { name:"FCA", region:"US/EU", evCommitment:15, productionScale:4400000, marketCap:26, revenue:122, evInvestment:2, globalReach:3, pricePosition:40, autonomyLevel:15, netIncome:3.2, usMarketShare:12, evMarketShare:0.5, employees:192000, vehicles2019:4400000, color:"#9b59b6", icon:"\uD83D\uDFE3", notes:"Merging with PSA Group (Peugeot), Foxconn JV for EVs, latecomer to electrification, relies on Jeep and Ram profits" },
+  { name:"VW Group", region:"EU", evCommitment:65, productionScale:10000000, marketCap:90, revenue:275, evInvestment:30, globalReach:5, pricePosition:60, autonomyLevel:35, netIncome:15.5, usMarketShare:4, evMarketShare:5, employees:671000, vehicles2019:10970000, color:"#f39c12", icon:"\uD83D\uDFE1", notes:"$30B committed by 2023, Dieselgate catalyst, 70 new EV models by 2028, Audi e-tron and Porsche Taycan launched, targets CO2 neutral by 2050" },
+  { name:"Toyota", region:"Japan", evCommitment:25, productionScale:10000000, marketCap:200, revenue:281, evInvestment:7, globalReach:5, pricePosition:50, autonomyLevel:25, netIncome:19.1, usMarketShare:14, evMarketShare:4, employees:370000, vehicles2019:10740000, color:"#e67e22", icon:"\uD83D\uDFE0", notes:"Prius PHEV pioneer (10M+ sold), former Tesla partner (2010-2016), sold NUMMI factory to Tesla, focused on hybrids over pure EVs" },
+  { name:"NIO", region:"China", evCommitment:100, productionScale:20000, marketCap:4, revenue:1.1, evInvestment:1, globalReach:1, pricePosition:75, autonomyLevel:45, netIncome:-1.6, usMarketShare:0, evMarketShare:2, employees:7500, vehicles2019:20565, color:"#1abc9c", icon:"\uD83D\uDD37", notes:"Tesla main Chinese luxury EV competitor, ~5 years behind Tesla in tech, outsources battery packs, premium NIO houses experience, Formula-E racing" },
+  { name:"Rivian", region:"US", evCommitment:100, productionScale:0, marketCap:3, revenue:0, evInvestment:1.2, globalReach:1, pricePosition:70, autonomyLevel:30, netIncome:-0.5, usMarketShare:0, evMarketShare:0, employees:3000, vehicles2019:0, color:"#fd79a8", icon:"\uD83D\uDC8E", notes:"$500M from Ford, $700M from Amazon, R1T truck + R1S SUV, 400-mile range, skateboard platform, former Mitsubishi plant (250K capacity)" }
+];
+
+const axisOptions = [
+  { key:"evCommitment", label:"EV Commitment (%)" },
+  { key:"productionScale", label:"Production Scale", log:true },
+  { key:"marketCap", label:"Market Cap ($B)" },
+  { key:"revenue", label:"Revenue ($B)" },
+  { key:"evInvestment", label:"EV Investment ($B)" },
+  { key:"pricePosition", label:"Price Position (luxury)" },
+  { key:"autonomyLevel", label:"Autonomy Capability" },
+  { key:"usMarketShare", label:"US Market Share (%)" },
+  { key:"evMarketShare", label:"Global EV Share (%)" },
+];
+
+const presets = [
+  { name:"EV Commitment vs Scale", x:"productionScale", y:"evCommitment" },
+  { name:"Mkt Cap vs Revenue", x:"revenue", y:"marketCap" },
+  { name:"Autonomy vs EV $", x:"evInvestment", y:"autonomyLevel" },
+  { name:"Price vs EV Share", x:"evMarketShare", y:"pricePosition" },
+  { name:"US Share vs EV Commit", x:"usMarketShare", y:"evCommitment" },
+];
+
+function norm(value, min, max, log) {
+  if (log) {
+    const v = value > 0 ? Math.log10(value + 1) : 0;
+    const mn = min > 0 ? Math.log10(min + 1) : 0;
+    const mx = Math.log10(max + 1);
+    return mx === mn ? 0.5 : (v - mn) / (mx - mn);
+  }
+  return max === min ? 0.5 : (value - min) / (max - min);
+}
+
+function App() {
+  const [xAxis, setXAxis] = useState("productionScale");
+  const [yAxis, setYAxis] = useState("evCommitment");
+  const [hovered, setHovered] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [regionFilter, setRegionFilter] = useState("All");
+  const [labels, setLabels] = useState(true);
+
+  const xOpt = axisOptions.find(a => a.key === xAxis);
+  const yOpt = axisOptions.find(a => a.key === yAxis);
+  const filtered = regionFilter === "All" ? companies : companies.filter(c => c.region.includes(regionFilter));
+  const xVals = filtered.map(c => c[xAxis]);
+  const yVals = filtered.map(c => c[yAxis]);
+  const xMin = Math.min(...xVals), xMax = Math.max(...xVals);
+  const yMin = Math.min(...yVals), yMax = Math.max(...yVals);
+
+  const pad = { t:50, r:30, b:55, l:65 };
+  const W = 600, H = 400;
+  const pW = W - pad.l - pad.r, pH = H - pad.t - pad.b;
+
+  const pos = (c) => ({
+    x: pad.l + norm(c[xAxis], xMin, xMax, xOpt && xOpt.log) * pW,
+    y: pad.t + pH - norm(c[yAxis], yMin, yMax, yOpt && yOpt.log) * pH,
+  });
+
+  const active = selected || hovered;
+  const activeData = active ? companies.find(c => c.name === active) : null;
+
+  return (
+    <div style={{ minHeight:"100vh", padding:20 }}>
+      <div style={{ maxWidth:960, margin:"0 auto" }}>
+        <h1 style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:20, fontWeight:700, color:"#e74c3c", marginBottom:2 }}>
+          STRATEGIC GROUP MAP
+        </h1>
+        <p style={{ fontSize:10, color:"#444", fontFamily:"'JetBrains Mono', monospace", marginBottom:14 }}>
+          Tesla, Inc. Case (Rothaermel 2020) — All data from case exhibits
+        </p>
+
+        <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:12 }}>
+          {presets.map((p, i) => (
+            <button key={i} className={"pb " + (xAxis === p.x && yAxis === p.y ? "on" : "")}
+              onClick={() => { setXAxis(p.x); setYAxis(p.y); setSelected(null); }}>
+              {p.name}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display:"flex", flexWrap:"wrap", gap:12, marginBottom:14, alignItems:"flex-end" }}>
+          <div>
+            <div style={{ fontSize:9, color:"#444", fontFamily:"'JetBrains Mono', monospace", marginBottom:3 }}>X-AXIS</div>
+            <select className="sel" value={xAxis} onChange={e => { setXAxis(e.target.value); setSelected(null); }}>
+              {axisOptions.map(a => <option key={a.key} value={a.key}>{a.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{ fontSize:9, color:"#444", fontFamily:"'JetBrains Mono', monospace", marginBottom:3 }}>Y-AXIS</div>
+            <select className="sel" value={yAxis} onChange={e => { setYAxis(e.target.value); setSelected(null); }}>
+              {axisOptions.map(a => <option key={a.key} value={a.key}>{a.label}</option>)}
+            </select>
+          </div>
+          <div style={{ display:"flex", gap:4 }}>
+            {["All","US","EU","China","Japan"].map(r => (
+              <button key={r} className={"rb " + (regionFilter === r ? "on" : "")}
+                onClick={() => { setRegionFilter(r); setSelected(null); }}>{r}</button>
+            ))}
+          </div>
+          <button className={"rb " + (labels ? "on" : "")} onClick={() => setLabels(!labels)}>
+            Labels {labels ? "ON" : "OFF"}
+          </button>
+        </div>
+
+        <div style={{ display:"flex", gap:16, flexWrap:"wrap" }}>
+          <div style={{ background:"#0c1018", borderRadius:10, border:"1px solid #181e2a", padding:12, flex:"1 1 600px" }}>
+            <svg width={W} height={H} viewBox={"0 0 " + W + " " + H} style={{ width:"100%", height:"auto" }}>
+              {[0,.25,.5,.75,1].map(t => (
+                <g key={t}>
+                  <line x1={pad.l} y1={pad.t + pH*(1-t)} x2={pad.l+pW} y2={pad.t + pH*(1-t)} stroke="#151a24" />
+                  <line x1={pad.l + pW*t} y1={pad.t} x2={pad.l + pW*t} y2={pad.t+pH} stroke="#151a24" />
+                </g>
+              ))}
+              <text x={pad.l+pW/2} y={H-6} textAnchor="middle" fill="#444" fontSize={10} fontFamily="'JetBrains Mono', monospace">{xOpt && xOpt.label}</text>
+              <text x={12} y={pad.t+pH/2} textAnchor="middle" fill="#444" fontSize={10} fontFamily="'JetBrains Mono', monospace"
+                transform={"rotate(-90, 12, " + (pad.t+pH/2) + ")"}>{yOpt && yOpt.label}</text>
+
+              {filtered.map((c) => {
+                const p = pos(c);
+                const r = Math.max(8, Math.min(28, Math.sqrt(c.marketCap) * 2.2));
+                const isActive = active === c.name;
+                return (
+                  <g key={c.name} className="dot" style={{ cursor:"pointer" }}
+                    onMouseEnter={() => setHovered(c.name)} onMouseLeave={() => setHovered(null)}
+                    onClick={() => setSelected(selected === c.name ? null : c.name)}>
+                    {isActive && <circle cx={p.x} cy={p.y} r={r+5} fill="none" stroke={c.color} strokeWidth={2} opacity={0.5} />}
+                    <circle cx={p.x} cy={p.y} r={r} fill={c.color + "55"} stroke={c.color} strokeWidth={isActive ? 2 : 1.2} />
+                    <text x={p.x} y={p.y+1} textAnchor="middle" dominantBaseline="central" fontSize={r*0.65} style={{ pointerEvents:"none" }}>{c.icon}</text>
+                    {labels && (
+                      <text x={p.x} y={p.y-r-5} textAnchor="middle" fill={isActive ? c.color : "#667"}
+                        fontSize={10} fontWeight={isActive ? "bold" : "normal"} fontFamily="'JetBrains Mono', monospace"
+                        style={{ pointerEvents:"none" }}>{c.name}</text>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+            <div style={{ fontSize:8, color:"#333", textAlign:"center", fontFamily:"'JetBrains Mono', monospace", marginTop:2 }}>
+              Bubble size = Market Cap | Click company for details
+            </div>
+          </div>
+
+          <div style={{ flex:"1 1 260px", background:"#0c1018", borderRadius:10, border:"1px solid #181e2a", padding:16, minHeight:380 }}>
+            {activeData ? (
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                  <span style={{ fontSize:24 }}>{activeData.icon}</span>
+                  <div>
+                    <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:16, fontWeight:700, color:activeData.color }}>{activeData.name}</div>
+                    <div style={{ fontSize:10, color:"#555" }}>{activeData.region}</div>
+                  </div>
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6, marginBottom:14 }}>
+                  {[
+                    { l:"Mkt Cap", v:"$"+activeData.marketCap+"B" },
+                    { l:"Revenue", v:"$"+activeData.revenue+"B" },
+                    { l:"Net Income", v:"$"+activeData.netIncome+"B", w:activeData.netIncome < 0 },
+                    { l:"Vehicles", v:activeData.vehicles2019.toLocaleString() },
+                    { l:"US Share", v:activeData.usMarketShare+"%" },
+                    { l:"EV Share", v:activeData.evMarketShare+"%" },
+                    { l:"EV Invest", v:"$"+activeData.evInvestment+"B" },
+                    { l:"Employees", v:activeData.employees.toLocaleString() },
+                  ].map((d, i) => (
+                    <div key={i} style={{ background:"#111722", borderRadius:6, padding:"6px 8px" }}>
+                      <div style={{ fontSize:8, color:"#444", fontFamily:"'JetBrains Mono', monospace" }}>{d.l}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:d.w ? "#e74c3c" : "#ccc", fontFamily:"'JetBrains Mono', monospace" }}>{d.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginBottom:14 }}>
+                  {[
+                    { l:"EV Commitment", v:activeData.evCommitment, m:100 },
+                    { l:"Price Position", v:activeData.pricePosition, m:100 },
+                    { l:"Autonomy", v:activeData.autonomyLevel, m:100 },
+                    { l:"Global Reach", v:activeData.globalReach, m:5 },
+                  ].map((b, i) => (
+                    <div key={i} style={{ marginBottom:5 }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", fontSize:9, color:"#555", marginBottom:1 }}>
+                        <span>{b.l}</span><span style={{ fontFamily:"'JetBrains Mono', monospace" }}>{b.v}/{b.m}</span>
+                      </div>
+                      <div style={{ height:5, background:"#181e2a", borderRadius:3, overflow:"hidden" }}>
+                        <div style={{ height:"100%", width:(b.v/b.m)*100+"%", background:activeData.color, borderRadius:3, transition:"width .4s" }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize:10, color:"#666", lineHeight:1.5, background:"#111722", borderRadius:6, padding:10 }}>
+                  <div style={{ fontSize:8, color:"#444", fontFamily:"'JetBrains Mono', monospace", marginBottom:3 }}>CASE NOTES</div>
+                  {activeData.notes}
+                </div>
+              </div>
+            ) : (
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100%", color:"#333" }}>
+                <div style={{ fontSize:36, marginBottom:10 }}>🎯</div>
+                <div style={{ fontFamily:"'JetBrains Mono', monospace", fontSize:11, textAlign:"center" }}>
+                  Click a company<br/>for full breakdown
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ marginTop:14, background:"#0c1018", borderRadius:10, border:"1px solid #181e2a", padding:14, overflowX:"auto" }}>
+          <div style={{ fontSize:9, color:"#444", fontFamily:"'JetBrains Mono', monospace", marginBottom:8 }}>COMPARISON TABLE — 2019 CASE DATA</div>
+          <table style={{ fontSize:10, fontFamily:"'JetBrains Mono', monospace" }}>
+            <thead>
+              <tr style={{ borderBottom:"1px solid #1a1f2a" }}>
+                {["Company","Region","Mkt Cap","Rev","Net Inc","Vehicles","US%","EV%","EV$"].map(h => (
+                  <th key={h} style={{ color:"#444", fontSize:8, fontWeight:400 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {companies.map(c => (
+                <tr key={c.name} style={{ borderBottom:"1px solid #12161e", background:active === c.name ? "#111722" : "transparent" }}
+                  onMouseEnter={() => setHovered(c.name)} onMouseLeave={() => setHovered(null)}
+                  onClick={() => setSelected(selected === c.name ? null : c.name)}>
+                  <td style={{ color:c.color, fontWeight:700 }}>{c.icon} {c.name}</td>
+                  <td style={{ color:"#555" }}>{c.region}</td>
+                  <td>${c.marketCap}B</td>
+                  <td>${c.revenue}B</td>
+                  <td style={{ color:c.netIncome < 0 ? "#e74c3c" : "#1abc9c" }}>${c.netIncome}B</td>
+                  <td>{c.vehicles2019.toLocaleString()}</td>
+                  <td>{c.usMarketShare}%</td>
+                  <td>{c.evMarketShare}%</td>
+                  <td>${c.evInvestment}B</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ marginTop:8, fontSize:8, color:"#222", fontFamily:"'JetBrains Mono', monospace", textAlign:"center" }}>
+          Source: Tesla, Inc. Case (MH0067) Rothaermel, McGraw-Hill 2020
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(React.createElement(App), document.getElementById("root"));
+</script>
+</body>
+</html>
